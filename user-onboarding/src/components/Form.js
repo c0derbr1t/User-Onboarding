@@ -64,6 +64,19 @@ const Onboard = ({
                     errors.password &&
                     <p className='errors'>{errors.password}</p>}
                 </label>
+
+                <label htmlFor='passwordCheck'>Password: 
+                    <Field
+                        id='passwordCheck'
+                        type='password'
+                        name='passwordCheck'
+                        placeholder='***Your Password, again***'
+                    />
+                    {touched.passwordCheck &&
+                    errors.passwordCheck &&
+                    <p className='errors'>{errors.passwordCheck}</p>}
+                </label>
+
                 <label htmlFor='tos'>Have you read the Terms of Service?
                     <Field
                         id='tos'
@@ -76,12 +89,13 @@ const Onboard = ({
 
                 <button type='submit'>Submit!</button>
             </Form>
+            <h3>Users:</h3>
             {users.map(user => {
                 return (
-                    <ul>
-                        <li>Name: {user.name}</li>
-                        <li>Email: {user.email}</li>
-                    </ul>
+                    <div className='userBox'>
+                        <p>Name: {user.name}</p>
+                        <p>Email: {user.email}</p>
+                    </div>
                 );
             })}
         </div>
@@ -89,25 +103,33 @@ const Onboard = ({
 };
 
 const FormikOnboard = withFormik({
-    mapPropsToValues({ name, email, password, tos }) {
+    mapPropsToValues({ name, email, password, passwordCheck, tos }) {
         return {
             name: name || '',
             email: email || '',
             password: password || '',
+            passwordCheck: passwordCheck || '',
             tos: tos || false
         };
     },
 
     validationSchema: Yup.object().shape({
-        name: Yup.string().required(
-            "Your name is required!"
-        ),
-        email: Yup.string().required(
-            "Your email is required!"
-        ),
-        password: Yup.string().required(
-            "Your password is required"
-        )
+        name: Yup.string()
+        .min(3, "Please enter 3 or more characters!")
+        .max(30, "Please use 30 or less characters!")
+        .required("Your name is required!"),
+        email: Yup.string()
+            .email("Please use a valid email format!")
+            .required("Your email is required!"),
+        password: Yup.string()
+            .min(6, "Your password must contain at least 6 characters!")
+            .required("Your password is required!"),
+        passwordCheck: Yup.string()
+            .oneOf([Yup.ref('password')], "Your passwords do not match!")
+            .required("The password check is required!"),
+        tos: Yup.boolean()
+        .test('consent', "The Terms of Service agreement is required!", value => value === true)
+        .required(" The Terms of Service agreement is required!"),
     }),
 
     handleSubmit(
@@ -115,7 +137,19 @@ const FormikOnboard = withFormik({
         { setStatus, resetForm }
     ) {
         axios
-            .post()
+            .post(
+                "https://reqres.in/api/users",
+                values                
+            )
+            .then(response => {
+                console.log("Success!", response);
+                setStatus(response.data);
+
+                resetForm();
+            })
+            .catch(error => {
+                console.log("There was an error!", error.response);    
+            })
     }
 })(Onboard);
 
